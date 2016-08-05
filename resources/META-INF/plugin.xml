@@ -1,0 +1,41 @@
+<idea-plugin version="2">
+  <id>net.hexar.json2pojo</id>
+  <name>Json2Pojo</name>
+  <version>1.0</version>
+  <vendor email="hexar@hexar.net" url="https://github.com/HexarA/Json2Pojo">HexarA</vendor>
+
+  <description><![CDATA[
+      Allows for easy creation of Java POJOs from JSON, with GSON annotations and accessors. Once installed,
+      just right-click on the destination package and choose "Generate POJOs from JSON", then enter in your
+      root class name and source JSON text.
+      <br />
+      <a href="https://github.com/Hexara/Json2Pojo">Source code</a> available on GitHub.
+    ]]></description>
+
+  <change-notes><![CDATA[
+      First revision.
+    ]]>
+  </change-notes>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+  <idea-version since-build="141.0"/>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+       on how to target different products -->
+  <!-- uncomment to enable plugin in all products
+  <depends>com.intellij.modules.lang</depends>
+  -->
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Add your extensions here -->
+  </extensions>
+
+  <actions>
+    <!-- Add your actions here -->
+    <action id="Json2Pojo.generate" class="net.hexar.json2pojo.GenerateAction" icon="/icons/json.png" text="Generate POJOs from JSON"
+            description="Takes a source JSON text and converts it to a set of POJOs in a directory that can be deserialized with GSON.">
+      <add-to-group group-id="NewGroup" anchor="first"/>
+    </action>
+  </actions>
+
+</idea-plugin>

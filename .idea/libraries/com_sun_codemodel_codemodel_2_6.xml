@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="com.sun.codemodel:codemodel:2.6" type="repository">
+    <properties maven-id="com.sun.codemodel:codemodel:2.6" />
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/sun/codemodel/codemodel/2.6/codemodel-2.6.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
