@@ -37,6 +37,8 @@ public class GeneratePojos {
     //region CLASS MAP -------------------------------------------------------------------------------------------------
 
     private Map<String, JDefinedClass> mClassMap = new HashMap<>();
+    private JType mDeferredClass;
+    private JType mDeferredList;
     private Map<JDefinedClass, Set<FieldData>> mFieldMap = new HashMap<>();
 
     //endregion
@@ -64,6 +66,10 @@ public class GeneratePojos {
             // Create code model and package
             JCodeModel jCodeModel = new JCodeModel();
             JPackage jPackage = jCodeModel._package(mPackageName);
+
+            // Create deferrable types
+            mDeferredClass = jCodeModel.ref(Deferred.class);
+            mDeferredList = jCodeModel.ref(List.class).narrow(Deferred.class);
 
             // Parse the JSON data
             ObjectMapper mapper = new ObjectMapper();
@@ -101,7 +107,7 @@ public class GeneratePojos {
         // Now create the actual fields
         int i = 1;
         for (JDefinedClass clazz : mClassMap.values()) {
-            generateFields(clazz, mFieldMap.get(clazz));
+            generateFields(clazz, mFieldMap.get(clazz), jPackage.owner());
             mProgressBar.setFraction((double) i / (double) mClassMap.size());
             i++;
         }
@@ -117,21 +123,22 @@ public class GeneratePojos {
      */
     private void parseTree(JPackage jPackage, JDefinedClass clazz, JsonNode classNode) throws Exception {
         // Iterate over all of the fields in this node
-        Iterator<Map.Entry<String, JsonNode>> iter = classNode.fields();
-        while (iter.hasNext()) {
+        Iterator<Map.Entry<String, JsonNode>> fieldsIterator = classNode.fields();
+        while (fieldsIterator.hasNext()) {
             // Get the field name and child node
-            Map.Entry<String, JsonNode> entry = iter.next();
+            Map.Entry<String, JsonNode> entry = fieldsIterator.next();
             String propertyName = entry.getKey();
             JsonNode childNode = entry.getValue();
 
             // For arrays and objects, we need to create a new type
             if (childNode.isArray()) {
                 // Determine the type of the first child
-                if (childNode.elements().hasNext()) {
-                    JsonNode firstChild = childNode.elements().next();
+                Iterator<JsonNode> childNodesIterator = childNode.elements();
+                while (childNodesIterator.hasNext()) {
+                    JsonNode nextChild = childNodesIterator.next();
 
                     // Only create sub-types for objects
-                    if (firstChild.isObject()) {
+                    if (nextChild.isObject()) {
                         // Singularize the class name of a single element
                         String newClassName = formatClassName(Inflector.getInstance().singularize(propertyName));
 
@@ -147,7 +154,7 @@ public class GeneratePojos {
                         }
 
                         // Recursively generate its child objects and fields
-                        parseTree(jPackage, newClass, firstChild);
+                        parseTree(jPackage, newClass, nextChild);
                     }
                 }
             } else if (childNode.isObject()) {
@@ -182,21 +189,54 @@ public class GeneratePojos {
      *
      * @param clazz the class to generate sub-objects and fields for.
      * @param fields the set of fields to generate.
+     * @param jCodeModel the code model.
      * @throws Exception if an error occurs.
      */
-    private void generateFields(JDefinedClass clazz, Set<FieldData> fields) throws Exception {
+    private void generateFields(JDefinedClass clazz, Set<FieldData> fields, JCodeModel jCodeModel) throws Exception {
         // Get sorted list of field names
         for (FieldData fieldData : fields) {
             // Create field with correct naming scheme
             String fieldName = formatFieldName(fieldData.PropertyName);
-            JFieldVar newField = clazz.field(JMod.PRIVATE, fieldData.Type, fieldName);
 
-            // Annotate field
-            annotateField(newField, fieldData.PropertyName);
+            // Resolve deferred types
+            JFieldVar newField;
+            if (fieldData.Type.equals(mDeferredClass)) {
+                // Attempt to get the class from the class map
+                String newClassName = formatClassName(fieldData.PropertyName);
+                JDefinedClass newClass = mClassMap.get(newClassName);
 
-            // Create accessors
-            createGetter(clazz, newField, fieldData.PropertyName);
-            createSetter(clazz, newField, fieldData.PropertyName);
+                // Now return the field for the actual class type
+                if (newClass != null) {
+                     newField = clazz.field(JMod.PRIVATE, newClass, fieldName);
+                } else {
+                    // Otherwise, just make a field of type Object
+                    newField = clazz.field(JMod.PRIVATE, jCodeModel.ref(Object.class), fieldName);
+                }
+            } else if (fieldData.Type.equals(mDeferredList)) {
+                // Attempt to get the class from the class map
+                String newClassName = formatClassName(Inflector.getInstance().singularize(fieldData.PropertyName));
+                JDefinedClass newClass = mClassMap.get(newClassName);
+
+                // Now return the field referring to a list of the new class
+                if (newClass != null) {
+                    newField = clazz.field(JMod.PRIVATE, jCodeModel.ref(List.class).narrow(newClass), fieldName);
+                } else {
+                    // Otherwise, just make a field of type List<Object>
+                    newField = clazz.field(JMod.PRIVATE, jCodeModel.ref(List.class).narrow(Object.class), fieldName);
+                }
+            } else {
+                // The type should already be defined so just use it
+                newField = clazz.field(JMod.PRIVATE, fieldData.Type, fieldName);
+            }
+
+            if (newField != null) {
+                // Annotate field
+                annotateField(newField, fieldData.PropertyName);
+
+                // Create accessors
+                createGetter(clazz, newField, fieldData.PropertyName);
+                createSetter(clazz, newField, fieldData.PropertyName);
+            }
         }
     }
 
@@ -231,15 +271,15 @@ public class GeneratePojos {
                     // Now return the field referring to a list of longs
                     return new FieldData(jCodeModel.ref(List.class).narrow(Long.class), propertyName);
                 } else if (firstNode.isNull()) {
-                    // Null values? Return List<Object>.
-                    return new FieldData(jCodeModel.ref(List.class).narrow(Object.class), propertyName);
+                    // Null values? Return List<Deferred>.
+                    return new FieldData(mDeferredList, propertyName);
                 } else if (firstNode.isTextual()) {
                     // Now return the field referring to a list of strings
                     return new FieldData(jCodeModel.ref(List.class).narrow(String.class), propertyName);
                 }
             } else {
-                // No elements? Return List<Object>.
-                return new FieldData(jCodeModel.ref(List.class).narrow(Object.class), propertyName);
+                // No elements? Return List<Deferred>.
+                return new FieldData(mDeferredList, propertyName);
             }
         } else if (node.isBoolean()) {
             return new FieldData(jCodeModel.ref(Boolean.class), propertyName);
@@ -248,17 +288,8 @@ public class GeneratePojos {
         } else if (node.isIntegralNumber()) {
             return new FieldData(jCodeModel.ref(Long.class), propertyName);
         } else if (node.isNull()) {
-            // Return the non-null version from the class map, if it exists
-            String newClassName = formatClassName(propertyName);
-            JDefinedClass newClass = mClassMap.get(newClassName);
-
-            // Now return the field referring to a list of the new class
-            if (newClass != null) {
-                return new FieldData(newClass, propertyName);
-            } else {
-                // Otherwise, just make a field of type Object
-                return new FieldData(jCodeModel.ref(Object.class), propertyName);
-            }
+            // Defer the type reference until later
+            return new FieldData(mDeferredClass, propertyName);
         } else if (node.isObject()) {
             // Get the already-created class from the class map
             String newClassName = formatClassName(propertyName);
@@ -406,6 +437,13 @@ public class GeneratePojos {
     //region INNER CLASSES ---------------------------------------------------------------------------------------------
 
     /**
+     * A class type that indicates that we don't yet know the type of data this field represents.
+     */
+    private static class Deferred {
+
+    }
+
+    /**
      * A comparator that sorts field data objects by field name, case insensitive.
      */
     private static class FieldComparator implements Comparator<FieldData> {
@@ -419,10 +457,10 @@ public class GeneratePojos {
      * A simple representation of a field to be created.
      */
     private static class FieldData {
-        public final JClass Type;
+        public final JType Type;
         public final String PropertyName;
 
-        public FieldData(JClass type, String propertyName) {
+        public FieldData(JType type, String propertyName) {
             Type = type;
             PropertyName = propertyName;
         }

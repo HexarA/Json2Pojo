@@ -13,7 +13,10 @@
     ]]></description>
 
   <change-notes><![CDATA[
-      Fixing handling of lowercase properties by uppercasing their field names and accessors.
+      <li>1.0 - First revision.</li>
+      <li>1.0.1 - Adding @Generated annotation to root class and SuppressWarnings (unused) for all generated classes.</li>
+      <li>1.0.2 - Fixing handling of lowercase properties by uppercasing their field names and accessors.</li>
+      <li>1.0.3 - Better discovery of field types when properties are missing or null.</li>
     ]]>
   </change-notes>
 
