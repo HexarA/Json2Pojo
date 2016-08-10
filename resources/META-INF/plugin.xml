@@ -1,19 +1,19 @@
 <idea-plugin version="2">
   <id>net.hexar.json2pojo</id>
   <name>Json2Pojo</name>
-  <version>1.0</version>
+  <version>1.0.1</version>
   <vendor email="hexar@hexar.net" url="https://github.com/HexarA/Json2Pojo">HexarA</vendor>
 
   <description><![CDATA[
       Allows for easy creation of Java POJOs from JSON, with GSON annotations and accessors. Once installed,
-      just right-click on the destination package and choose "Generate POJOs from JSON", then enter in your
+      just right-click on the destination package and choose "New -> Generate POJOs from JSON", then enter in your
       root class name and source JSON text.
-      <br />
+      <br/><br/>
       <a href="https://github.com/Hexara/Json2Pojo">Source code</a> available on GitHub.
     ]]></description>
 
   <change-notes><![CDATA[
-      First revision.
+      Adding @Generated annotation to root class and SuppressWarnings (unused) for all generated classes.
     ]]>
   </change-notes>
 

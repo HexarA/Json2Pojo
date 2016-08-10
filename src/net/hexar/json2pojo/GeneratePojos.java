@@ -71,6 +71,7 @@ public class GeneratePojos {
 
             // Create top-level class
             JDefinedClass rootClass = jPackage._class(rootName);
+            annotateClass(rootClass);
             mClassMap.put(rootName, rootClass);
             mFieldMap.put(rootClass, new TreeSet<>(new FieldComparator()));
 
@@ -280,6 +281,7 @@ public class GeneratePojos {
      */
     private void annotateClass(JDefinedClass clazz) {
         clazz.annotate(Generated.class).param("value", "net.hexar.json2pojo");
+        clazz.annotate(SuppressWarnings.class).param("value", "unused");
     }
 
     /**
