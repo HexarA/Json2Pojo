@@ -133,7 +133,7 @@ public class GeneratePojos {
                     // Only create sub-types for objects
                     if (firstChild.isObject()) {
                         // Singularize the class name of a single element
-                        String newClassName = Inflector.getInstance().singularize(propertyName);
+                        String newClassName = formatClassName(Inflector.getInstance().singularize(propertyName));
 
                         // Find the class if it exists, or create it if it doesn't
                         JDefinedClass newClass;
@@ -151,8 +151,8 @@ public class GeneratePojos {
                     }
                 }
             } else if (childNode.isObject()) {
-                // The class name should match the field name
-                String newClassName = propertyName;
+                // The class name should match the field name, except uppercase
+                String newClassName = formatClassName(propertyName);
 
                 // Find the class if it exists, or create it if it doesn't
                 JDefinedClass newClass;
@@ -213,7 +213,7 @@ public class GeneratePojos {
         // Switch on node type
         if (node.isArray()) {
             // Singularize the class name of a single element
-            String newClassName = Inflector.getInstance().singularize(propertyName);
+            String newClassName = formatClassName(Inflector.getInstance().singularize(propertyName));
 
             // Get the array type
             if (node.elements().hasNext()) {
@@ -249,7 +249,8 @@ public class GeneratePojos {
             return new FieldData(jCodeModel.ref(Long.class), propertyName);
         } else if (node.isNull()) {
             // Return the non-null version from the class map, if it exists
-            JDefinedClass newClass = mClassMap.get(propertyName);
+            String newClassName = formatClassName(propertyName);
+            JDefinedClass newClass = mClassMap.get(newClassName);
 
             // Now return the field referring to a list of the new class
             if (newClass != null) {
@@ -260,7 +261,8 @@ public class GeneratePojos {
             }
         } else if (node.isObject()) {
             // Get the already-created class from the class map
-            JDefinedClass newClass = mClassMap.get(propertyName);
+            String newClassName = formatClassName(propertyName);
+            JDefinedClass newClass = mClassMap.get(newClassName);
 
             // Now return the field referring to a list of the new class
             return new FieldData(newClass, propertyName);
@@ -315,7 +317,10 @@ public class GeneratePojos {
      * @return a {@link JMethod} which is a getter for the given field.
      */
     private JMethod createGetter(JDefinedClass clazz, JFieldVar field, String propertyName) {
-        JMethod getter = clazz.method(JMod.PUBLIC, field.type(), "get" + propertyName);
+        // Method name should start with "get" and then the uppercased class name
+        JMethod getter = clazz.method(JMod.PUBLIC, field.type(), "get" + formatClassName(propertyName));
+
+        // Return the field
         JBlock body = getter.body();
         body._return(field);
         return getter;
@@ -330,9 +335,11 @@ public class GeneratePojos {
      * @return a {@link JMethod} which is a setter for the given field.
      */
     private JMethod createSetter(JDefinedClass clazz, JFieldVar field, String propertyName) {
-        JMethod setter = clazz.method(JMod.PUBLIC, void.class, "set" + propertyName);
+        // Method name should start with "set" and then the uppercased class name
+        JMethod setter = clazz.method(JMod.PUBLIC, void.class, "set" + formatClassName(propertyName));
+
         // Set parameter name to lower camel case
-        String paramName = makeLowerCamelCase(propertyName);
+        String paramName = makeLowercase(propertyName);
         JVar param = setter.param(field.type(), paramName);
 
         // Assign to field name
@@ -348,6 +355,18 @@ public class GeneratePojos {
     }
 
     /**
+     * Formats the given property name into a more standard class name.
+     *
+     * @param propertyName the original property name.
+     * @return the formatted class name.
+     */
+    private String formatClassName(String propertyName) {
+        propertyName = propertyName.replace("_", "");
+        propertyName = makeUppercase(propertyName);
+        return propertyName;
+    }
+
+    /**
      * Formats the given property name into a more standard field name.
      *
      * @param propertyName the original property name.
@@ -355,7 +374,7 @@ public class GeneratePojos {
      */
     private String formatFieldName(String propertyName) {
         propertyName = propertyName.replace("_", "");
-        propertyName = Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
+        propertyName = makeUppercase(propertyName);
         if (USE_M_PREFIX) {
             propertyName = "m" + propertyName;
         }
@@ -368,8 +387,18 @@ public class GeneratePojos {
      * @param name the name to make lower camel-case.
      * @return the input string with the first letter changed to lowercase.
      */
-    private String makeLowerCamelCase(String name) {
+    private String makeLowercase(String name) {
         return Character.toLowerCase(name.charAt(0)) + name.substring(1);
+    }
+
+    /**
+     * Sets the first letter of a name to uppercase.
+     *
+     * @param name the name to make uppercase.
+     * @return the input string with the first letter changed to uppercase.
+     */
+    private String makeUppercase(String name) {
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 
     //endregion
