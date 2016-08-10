@@ -1,7 +1,7 @@
 <idea-plugin version="2">
   <id>net.hexar.json2pojo</id>
   <name>Json2Pojo</name>
-  <version>1.0.2</version>
+  <version>1.0.3</version>
   <vendor email="hexar@hexar.net" url="https://github.com/HexarA/Json2Pojo">HexarA</vendor>
 
   <description><![CDATA[
