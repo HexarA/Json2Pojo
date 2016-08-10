@@ -41,7 +41,7 @@ public class GenerateAction extends AnAction {
                     generatePojos.generateFromJson(className, jsonText);
 
                     // Refresh UI
-                    actionFolder.refresh(true, true);
+                    actionFolder.refresh(false, true);
                 }
             });
         });
