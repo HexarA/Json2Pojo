@@ -7,6 +7,7 @@ import com.google.gson.annotations.SerializedName;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.sun.codemodel.*;
+import org.apache.commons.lang.StringUtils;
 import org.jboss.dna.common.text.Inflector;
 
 import javax.annotation.Generated;
@@ -17,7 +18,7 @@ import java.util.*;
 /**
  * Contains the code to generate Java POJO classes from a given JSON text.
  */
-public class GeneratePojos {
+class GeneratePojos {
 
     //region CONSTANTS -------------------------------------------------------------------------------------------------
 
@@ -45,7 +46,7 @@ public class GeneratePojos {
 
     //region CONSTRUCTOR -----------------------------------------------------------------------------------------------
 
-    public GeneratePojos(String packageName, VirtualFile moduleSourceRoot, ProgressIndicator progressBar) {
+    GeneratePojos(String packageName, VirtualFile moduleSourceRoot, ProgressIndicator progressBar) {
         mModuleSourceRoot = moduleSourceRoot;
         mPackageName = packageName;
         mProgressBar = progressBar;
@@ -61,7 +62,7 @@ public class GeneratePojos {
      * @param rootName the name of the root class to generate.
      * @param json the source JSON text.
      */
-    public void generateFromJson(String rootName, String json) {
+    void generateFromJson(String rootName, String json) {
         try {
             // Create code model and package
             JCodeModel jCodeModel = new JCodeModel();
@@ -312,7 +313,7 @@ public class GeneratePojos {
      *
      * @param clazz the class to annotate.
      */
-    private void annotateClass(JDefinedClass clazz) {
+    private static void annotateClass(JDefinedClass clazz) {
         clazz.annotate(Generated.class).param("value", "net.hexar.json2pojo");
         clazz.annotate(SuppressWarnings.class).param("value", "unused");
     }
@@ -324,7 +325,7 @@ public class GeneratePojos {
      * @param field the field to annotate.
      * @param propertyName the original JSON property name.
      */
-    private void annotateField(JFieldVar field, String propertyName) {
+    private static void annotateField(JFieldVar field, String propertyName) {
         // Use the SerializedName annotation if the field name doesn't match the property name
         if (!field.name().equals(propertyName)) {
             field.annotate(SerializedName.class).param("value", propertyName);
@@ -347,7 +348,7 @@ public class GeneratePojos {
      * @param propertyName the name of the property.
      * @return a {@link JMethod} which is a getter for the given field.
      */
-    private JMethod createGetter(JDefinedClass clazz, JFieldVar field, String propertyName) {
+    private static JMethod createGetter(JDefinedClass clazz, JFieldVar field, String propertyName) {
         // Method name should start with "get" and then the uppercased class name
         JMethod getter = clazz.method(JMod.PUBLIC, field.type(), "get" + formatClassName(propertyName));
 
@@ -365,12 +366,12 @@ public class GeneratePojos {
      * @param propertyName the name of the property.
      * @return a {@link JMethod} which is a setter for the given field.
      */
-    private JMethod createSetter(JDefinedClass clazz, JFieldVar field, String propertyName) {
+    private static JMethod createSetter(JDefinedClass clazz, JFieldVar field, String propertyName) {
         // Method name should start with "set" and then the uppercased class name
         JMethod setter = clazz.method(JMod.PUBLIC, void.class, "set" + formatClassName(propertyName));
 
         // Set parameter name to lower camel case
-        String paramName = makeLowercase(propertyName);
+        String paramName = StringUtils.uncapitalize(propertyName);
         JVar param = setter.param(field.type(), paramName);
 
         // Assign to field name
@@ -391,10 +392,8 @@ public class GeneratePojos {
      * @param propertyName the original property name.
      * @return the formatted class name.
      */
-    private String formatClassName(String propertyName) {
-        propertyName = propertyName.replace("_", "");
-        propertyName = makeUppercase(propertyName);
-        return propertyName;
+    private static String formatClassName(String propertyName) {
+        return uppercaseUnderscoredWords(propertyName);
     }
 
     /**
@@ -403,33 +402,34 @@ public class GeneratePojos {
      * @param propertyName the original property name.
      * @return the formatted field name.
      */
-    private String formatFieldName(String propertyName) {
-        propertyName = propertyName.replace("_", "");
-        propertyName = makeUppercase(propertyName);
+    private static String formatFieldName(String propertyName) {
+        String formatted = uppercaseUnderscoredWords(propertyName);
+
         if (USE_M_PREFIX) {
-            propertyName = "m" + propertyName;
+            formatted = "m" + formatted;
         }
-        return propertyName;
+        return formatted;
     }
 
     /**
-     * Sets the first letter of a name to lowercase.
+     * Given a property name as a string, uppercases the first word and all
+     * subsequent words that are delimited with an underscore.
      *
-     * @param name the name to make lower camel-case.
-     * @return the input string with the first letter changed to lowercase.
+     * @param propertyName the property name to format.
+     * @return a String containing uppercased words, with underscores removed.
      */
-    private String makeLowercase(String name) {
-        return Character.toLowerCase(name.charAt(0)) + name.substring(1);
-    }
-
-    /**
-     * Sets the first letter of a name to uppercase.
-     *
-     * @param name the name to make uppercase.
-     * @return the input string with the first letter changed to uppercase.
-     */
-    private String makeUppercase(String name) {
-        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    private static String uppercaseUnderscoredWords(String propertyName) {
+        // Underscores denote new words, which should each be uppercased
+        if (propertyName.contains("_")) {
+            String uppercased = "";
+            String[] words = propertyName.split("_");
+            for (String word : words) {
+                uppercased += StringUtils.capitalize(word);
+            }
+            return uppercased;
+        } else {
+            return StringUtils.capitalize(propertyName);
+        }
     }
 
     //endregion
@@ -449,7 +449,8 @@ public class GeneratePojos {
     private static class FieldComparator implements Comparator<FieldData> {
         @Override
         public int compare(FieldData left, FieldData right) {
-            return left.PropertyName.compareTo(right.PropertyName);
+            // Sort by formatted field name, not the property names
+            return formatFieldName(left.PropertyName).compareTo(formatFieldName(right.PropertyName));
         }
     }
 
@@ -457,10 +458,10 @@ public class GeneratePojos {
      * A simple representation of a field to be created.
      */
     private static class FieldData {
-        public final JType Type;
-        public final String PropertyName;
+        final JType Type;
+        final String PropertyName;
 
-        public FieldData(JType type, String propertyName) {
+        FieldData(JType type, String propertyName) {
             Type = type;
             PropertyName = propertyName;
         }
