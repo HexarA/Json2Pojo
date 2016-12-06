@@ -52,4 +52,10 @@ public class GenerateAction extends AnAction {
 
     //endregion
 
+
+    @Override
+    public void update(AnActionEvent event) {
+        String packageName = ProjectRootManager.getInstance(event.getProject()).getFileIndex().getPackageNameByDirectory(event.getData(LangDataKeys.VIRTUAL_FILE));
+        event.getPresentation().setVisible(packageName != null);
+    }
 }
