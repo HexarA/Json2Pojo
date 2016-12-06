@@ -17,45 +17,55 @@ import org.jetbrains.annotations.NotNull;
 public class GenerateAction extends AnAction {
 
     //region ACTION CONTEXT --------------------------------------------------------------------------------------------
-
     //endregion
 
     //region ACTION METHODS --------------------------------------------------------------------------------------------
 
     @Override
-    public void actionPerformed(AnActionEvent e) {
-        // Get the action folder, module source root, and effective package name
-        Project project = e.getProject();
-        VirtualFile actionFolder = e.getData(LangDataKeys.VIRTUAL_FILE);
-        VirtualFile moduleSourceRoot = ProjectRootManager.getInstance(project).getFileIndex().getSourceRootForFile(actionFolder);
-        String packageName = ProjectRootManager.getInstance(project).getFileIndex().getPackageNameByDirectory(actionFolder);
+    public void actionPerformed(AnActionEvent event) {
+        // Get the action folder
+        Project project = event.getProject();
+        VirtualFile actionFolder = event.getData(LangDataKeys.VIRTUAL_FILE);
 
-        // Show JSON dialog
-        JsonEntryDialog dialog = new JsonEntryDialog((className, jsonText) -> {
-            // Show background process indicator
-            ProgressManager.getInstance().run(new Task.Backgroundable(project, "Json2Pojo Class Generation", false) {
-                @Override
-                public void run(@NotNull ProgressIndicator indicator) {
-                    // Generate POJOs
-                    GeneratePojos generatePojos = new GeneratePojos(packageName, moduleSourceRoot, indicator);
-                    generatePojos.generateFromJson(className, jsonText);
+        if (project != null && actionFolder != null) {
+            // Get the module source root and effective package name
+            VirtualFile moduleSourceRoot = ProjectRootManager.getInstance(project).getFileIndex().getSourceRootForFile(actionFolder);
+            String packageName = ProjectRootManager.getInstance(project).getFileIndex().getPackageNameByDirectory(actionFolder);
 
-                    // Refresh UI
-                    actionFolder.refresh(false, true);
-                }
+            // Show JSON dialog
+            JsonEntryDialog dialog = new JsonEntryDialog((className, jsonText) -> {
+                // Show background process indicator
+                ProgressManager.getInstance().run(new Task.Backgroundable(project, "Json2Pojo Class Generation", false) {
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        // Generate POJOs
+                        GeneratePojos generatePojos = new GeneratePojos(packageName, moduleSourceRoot, indicator);
+                        generatePojos.generateFromJson(className, jsonText);
+
+                        // Refresh UI
+                        actionFolder.refresh(false, true);
+                    }
+                });
             });
-        });
-        dialog.setLocationRelativeTo(null);
-        dialog.pack();
-        dialog.setVisible(true);
+            dialog.setLocationRelativeTo(null);
+            dialog.pack();
+            dialog.setVisible(true);
+        }
+    }
+
+    @Override
+    public void update(AnActionEvent event) {
+        // Get the project and action folder
+        Project project = event.getProject();
+        VirtualFile actionFolder = event.getData(LangDataKeys.VIRTUAL_FILE);
+
+        if (project != null && actionFolder != null) {
+            // Set visibility based on if the package name is non-null
+            String packageName = ProjectRootManager.getInstance(project).getFileIndex().getPackageNameByDirectory(actionFolder);
+            event.getPresentation().setVisible(packageName != null);
+        }
     }
 
     //endregion
 
-
-    @Override
-    public void update(AnActionEvent event) {
-        String packageName = ProjectRootManager.getInstance(event.getProject()).getFileIndex().getPackageNameByDirectory(event.getData(LangDataKeys.VIRTUAL_FILE));
-        event.getPresentation().setVisible(packageName != null);
-    }
 }
