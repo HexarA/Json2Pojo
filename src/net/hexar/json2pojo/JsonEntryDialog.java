@@ -29,8 +29,9 @@ public class JsonEntryDialog extends JDialog {
          *
          * @param className the class name entered into the dialog.
          * @param jsonText the JSON text entered into the dialog.
+         * @param generateBuilders true if the generated classes should omit setters and generate builders.
          */
-        void onOk(String className, String jsonText);
+        void onOk(String className, String jsonText, boolean generateBuilders);
     }
 
     //endregion
@@ -52,6 +53,7 @@ public class JsonEntryDialog extends JDialog {
     private JTextField mClassName;
     private JPanel mContentPane;
     private RSyntaxTextArea mJsonText;
+    private JCheckBox mGenerateBuilders;
 
     //endregion
 
@@ -67,7 +69,7 @@ public class JsonEntryDialog extends JDialog {
         getRootPane().setDefaultButton(mButtonOK);
 
         // Set the minimum dialog size
-        setMinimumSize(new Dimension(290, 200));
+        setMinimumSize(new Dimension(420, 200));
 
         // Add button listeners
         mButtonOK.addActionListener(e -> onOK());
@@ -113,7 +115,7 @@ public class JsonEntryDialog extends JDialog {
     }
 
     private void onOK() {
-        mListener.onOk(mClassName.getText(), mJsonText.getText());
+        mListener.onOk(mClassName.getText(), mJsonText.getText(), mGenerateBuilders.isSelected());
         dispose();
     }
 
