@@ -1,7 +1,7 @@
 <idea-plugin version="2">
   <id>net.hexar.json2pojo</id>
   <name>Json2Pojo</name>
-  <version>1.0.5</version>
+  <version>1.0.6</version>
   <vendor email="hexar@hexar.net" url="https://github.com/HexarA/Json2Pojo">HexarA</vendor>
 
   <description><![CDATA[
@@ -19,6 +19,7 @@
       <li>1.0.3 - Better discovery of field types when properties are missing or null.</li>
       <li>1.0.4 - Capitalizing words after underscores in field names.</li>
       <li>1.0.5 - Adding an option to generate builders and remove setters, making classes immutable.</li>
+      <li>1.0.6 - Preventing crash when right-clicking on file instead of a folder / package.</li>
     ]]>
   </change-notes>
 

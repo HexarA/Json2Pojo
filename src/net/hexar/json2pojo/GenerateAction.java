@@ -27,7 +27,7 @@ public class GenerateAction extends AnAction {
         Project project = event.getProject();
         VirtualFile actionFolder = event.getData(LangDataKeys.VIRTUAL_FILE);
 
-        if (project != null && actionFolder != null) {
+        if (project != null && actionFolder != null && actionFolder.isDirectory()) {
             // Get the module source root and effective package name
             VirtualFile moduleSourceRoot = ProjectRootManager.getInstance(project).getFileIndex().getSourceRootForFile(actionFolder);
             String packageName = ProjectRootManager.getInstance(project).getFileIndex().getPackageNameByDirectory(actionFolder);
@@ -59,10 +59,12 @@ public class GenerateAction extends AnAction {
         Project project = event.getProject();
         VirtualFile actionFolder = event.getData(LangDataKeys.VIRTUAL_FILE);
 
-        if (project != null && actionFolder != null) {
+        if (project != null && actionFolder != null && actionFolder.isDirectory()) {
             // Set visibility based on if the package name is non-null
             String packageName = ProjectRootManager.getInstance(project).getFileIndex().getPackageNameByDirectory(actionFolder);
             event.getPresentation().setVisible(packageName != null);
+        } else {
+            event.getPresentation().setVisible(false);
         }
     }
 
