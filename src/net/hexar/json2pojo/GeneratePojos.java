@@ -402,7 +402,7 @@ class GeneratePojos {
         JMethod withMethod = builder.method(JMod.PUBLIC, builder, "with" + formatClassName(propertyName));
 
         // Set parameter name to lower camel case
-        String paramName = StringUtils.uncapitalize(propertyName);
+        String paramName = sanitizePropertyName(propertyName);
         JVar param = withMethod.param(field.type(), paramName);
 
         // Assign to field name
@@ -433,7 +433,7 @@ class GeneratePojos {
         JBlock body = buildMethod.body();
 
         // Declare new instance of owner class
-        String localName = StringUtils.uncapitalize(owner.name());
+        String localName = sanitizePropertyName(owner.name());
         JVar local = body.decl(owner, localName, JExpr._new(owner));
 
         // Get sorted list of field names
@@ -478,7 +478,7 @@ class GeneratePojos {
         JMethod setter = clazz.method(JMod.PUBLIC, void.class, "set" + formatClassName(propertyName));
 
         // Set parameter name to lower camel case
-        String paramName = StringUtils.uncapitalize(propertyName);
+        String paramName = sanitizePropertyName(propertyName);
         JVar param = setter.param(field.type(), paramName);
 
         // Assign to field name
@@ -499,8 +499,8 @@ class GeneratePojos {
      * @param propertyName the original property name.
      * @return the formatted class name.
      */
-    private static String formatClassName(String propertyName) {
-        return uppercaseUnderscoredWords(propertyName);
+    static String formatClassName(String propertyName) {
+        return StringUtils.capitalize(sanitizePropertyName(propertyName));
     }
 
     /**
@@ -509,34 +509,54 @@ class GeneratePojos {
      * @param propertyName the original property name.
      * @return the formatted field name.
      */
-    private static String formatFieldName(String propertyName) {
-        String formatted = uppercaseUnderscoredWords(propertyName);
+    static String formatFieldName(String propertyName) {
+        String fieldName = StringUtils.capitalize(sanitizePropertyName(propertyName));
 
         if (USE_M_PREFIX) {
-            formatted = "m" + formatted;
+            fieldName = "m" + fieldName;
         }
-        return formatted;
+        return fieldName;
     }
 
     /**
-     * Given a property name as a string, uppercases the first word and all
-     * subsequent words that are delimited with an underscore.
+     * Given a property name as a string, creates a valid identifier by removing non-alphanumeric characters and
+     * uppercasing the letters after non-alphanumeric characters.
      *
      * @param propertyName the property name to format.
      * @return a String containing uppercased words, with underscores removed.
      */
-    private static String uppercaseUnderscoredWords(String propertyName) {
-        // Underscores denote new words, which should each be uppercased
-        if (propertyName.contains("_")) {
-            String uppercased = "";
-            String[] words = propertyName.split("_");
-            for (String word : words) {
-                uppercased += StringUtils.capitalize(word);
-            }
-            return uppercased;
-        } else {
-            return StringUtils.capitalize(propertyName);
+    private static String sanitizePropertyName(String propertyName) {
+        final StringBuilder formattedName = new StringBuilder();
+        boolean uppercaseNext = false;
+
+        // Avoid invalid starting characters for class / field names
+        if (Character.isJavaIdentifierStart(propertyName.charAt(0))) {
+            formattedName.append(propertyName.charAt(0));
         }
+
+        // Iterate over the other characters
+        for (int charIndex = 1; charIndex < propertyName.length(); charIndex++) {
+            // Append valid characters
+            Character c = propertyName.charAt(charIndex);
+            if (Character.isAlphabetic(c)) {
+                if (uppercaseNext) {
+                    // Uppercase this letter
+                    formattedName.append(Character.toUpperCase(c));
+                    uppercaseNext = false;
+                } else {
+                    // Retain case
+                    formattedName.append(propertyName.charAt(charIndex));
+                }
+            } else if (Character.isDigit(c)) {
+                // Append as is
+                formattedName.append(c);
+            } else {
+                // Don't append non-alphanumeric parts and uppercase next letter
+                uppercaseNext = true;
+            }
+        }
+
+        return formattedName.toString();
     }
 
     //endregion
