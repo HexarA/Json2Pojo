@@ -1,5 +1,6 @@
 package net.hexar.json2pojo;
 
+import com.intellij.ide.projectView.ProjectView;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.LangDataKeys;
@@ -43,7 +44,11 @@ public class GenerateAction extends AnAction {
                         generatePojos.generateFromJson(className, jsonText, generateBuilders);
 
                         // Refresh UI
-                        actionFolder.refresh(false, true);
+                        try {
+                            Thread.sleep(100);
+                            ProjectView.getInstance(project).refresh();
+                            actionFolder.refresh(false, true);
+                        } catch (InterruptedException ignored) { }
                     }
                 });
             });
