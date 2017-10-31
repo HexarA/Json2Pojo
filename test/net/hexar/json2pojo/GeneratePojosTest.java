@@ -20,14 +20,27 @@ public class GeneratePojosTest {
     }
 
     @Test
-    public void formatFieldName() throws Exception {
-        assertEquals("mTest", GeneratePojos.formatFieldName("test"));
-        assertEquals("mTest2", GeneratePojos.formatFieldName("test2"));
-        assertEquals("mTestWithUnderscores", GeneratePojos.formatFieldName("test_with_underscores"));
-        assertEquals("mTestWithHyphens", GeneratePojos.formatFieldName("test-with-hyphens"));
-        assertEquals("mAbstract", GeneratePojos.formatFieldName("abstract"));
-        assertEquals("mPiñata", GeneratePojos.formatFieldName("piñata"));
-        assertEquals("mTest", GeneratePojos.formatFieldName("1Test"));
-        assertEquals("mInvalidChars", GeneratePojos.formatFieldName("Invalid@$%@#$^&#%@Chars"));
+    public void formatFieldNameWithMPrefix() throws Exception {
+        assertEquals("mTest", GeneratePojos.formatFieldName("test", true));
+        assertEquals("mTest2", GeneratePojos.formatFieldName("test2", true));
+        assertEquals("mTestWithUnderscores", GeneratePojos.formatFieldName("test_with_underscores", true));
+        assertEquals("mTestWithHyphens", GeneratePojos.formatFieldName("test-with-hyphens", true));
+        assertEquals("mAbstract", GeneratePojos.formatFieldName("abstract", true));
+        assertEquals("mPiñata", GeneratePojos.formatFieldName("piñata", true));
+        assertEquals("mTest", GeneratePojos.formatFieldName("1Test", true));
+        assertEquals("mInvalidChars", GeneratePojos.formatFieldName("Invalid@$%@#$^&#%@Chars", true));
     }
+
+    @Test
+    public void formatFieldNameWithoutMPrefix() throws Exception {
+        assertEquals("Test", GeneratePojos.formatFieldName("test", false));
+        assertEquals("Test2", GeneratePojos.formatFieldName("test2", false));
+        assertEquals("TestWithUnderscores", GeneratePojos.formatFieldName("test_with_underscores", false));
+        assertEquals("TestWithHyphens", GeneratePojos.formatFieldName("test-with-hyphens", false));
+        assertEquals("Abstract", GeneratePojos.formatFieldName("abstract", false));
+        assertEquals("Piñata", GeneratePojos.formatFieldName("piñata", false));
+        assertEquals("Test", GeneratePojos.formatFieldName("1Test", false));
+        assertEquals("InvalidChars", GeneratePojos.formatFieldName("Invalid@$%@#$^&#%@Chars", false));
+    }
+
 }

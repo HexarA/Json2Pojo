@@ -23,7 +23,6 @@ class GeneratePojos {
     //region CONSTANTS -------------------------------------------------------------------------------------------------
 
     private static final boolean ALWAYS_ANNOTATE_EXPOSE = false;
-    private static final boolean USE_M_PREFIX = true;
 
     //endregion
 
@@ -40,6 +39,7 @@ class GeneratePojos {
     private Map<String, JDefinedClass> mClassMap = new HashMap<>();
     private JType mDeferredClass;
     private JType mDeferredList;
+    private FieldComparator mFieldComparator;
     private Map<JDefinedClass, Set<FieldInfo>> mFieldMap = new HashMap<>();
 
     //endregion
@@ -62,8 +62,11 @@ class GeneratePojos {
      * @param rootName the name of the root class to generate.
      * @param json the source JSON text.
      * @param generateBuilders true if the generated class should omit setters and generate a builder instead.
+     * @param useMPrefix true if the generated fields should use an 'm' prefix.
      */
-    void generateFromJson(String rootName, String json, boolean generateBuilders) {
+    void generateFromJson(String rootName, String json, boolean generateBuilders, boolean useMPrefix) {
+        mFieldComparator = new FieldComparator(useMPrefix);
+
         try {
             // Create code model and package
             JCodeModel jCodeModel = new JCodeModel();
@@ -81,10 +84,10 @@ class GeneratePojos {
             JDefinedClass rootClass = jPackage._class(rootName);
             annotateClass(rootClass);
             mClassMap.put(rootName, rootClass);
-            mFieldMap.put(rootClass, new TreeSet<>(new FieldComparator()));
+            mFieldMap.put(rootClass, new TreeSet<>(mFieldComparator));
 
             // Recursively generate
-            generate(rootNode, rootClass, jPackage, generateBuilders);
+            generate(rootNode, rootClass, jPackage, generateBuilders, useMPrefix);
 
             // Build
             jCodeModel.build(new File(mModuleSourceRoot.getPath()));
@@ -101,9 +104,11 @@ class GeneratePojos {
      * @param rootClass the class to generate sub-objects and fields for.
      * @param jPackage the code model package to generate the class in.
      * @param generateBuilders true if the generated class should omit setters and generate a builder instead.
+     * @param useMPrefix true if the generated fields should use an 'm' prefix.
      * @throws Exception if an error occurs.
      */
-    private void generate(JsonNode rootNode, JDefinedClass rootClass, JPackage jPackage, boolean generateBuilders) throws Exception {
+    private void generate(JsonNode rootNode, JDefinedClass rootClass, JPackage jPackage, boolean generateBuilders,
+                          boolean useMPrefix) throws Exception {
         // First create all referenced sub-types and collect field data
         parseTree(rootNode, rootClass, jPackage);
 
@@ -111,7 +116,8 @@ class GeneratePojos {
         int i = 1;
         for (JDefinedClass clazz : mClassMap.values()) {
             // Generate the fields
-            List<GeneratedField> fields = generateFields(clazz, mFieldMap.get(clazz), jPackage.owner(), generateBuilders);
+            List<GeneratedField> fields = generateFields(clazz, mFieldMap.get(clazz), jPackage.owner(),
+                    generateBuilders, useMPrefix);
 
             // Optionally generate the inner builder class
             if (generateBuilders) {
@@ -161,7 +167,7 @@ class GeneratePojos {
                             newClass = jPackage._class(newClassName);
                             annotateClass(newClass);
                             mClassMap.put(newClassName, newClass);
-                            mFieldMap.put(newClass, new TreeSet<>(new FieldComparator()));
+                            mFieldMap.put(newClass, new TreeSet<>(mFieldComparator));
                         }
 
                         // Recursively generate its child objects and fields
@@ -180,7 +186,7 @@ class GeneratePojos {
                     newClass = jPackage._class(newClassName);
                     annotateClass(newClass);
                     mClassMap.put(newClassName, newClass);
-                    mFieldMap.put(newClass, new TreeSet<>(new FieldComparator()));
+                    mFieldMap.put(newClass, new TreeSet<>(mFieldComparator));
                 }
 
                 // Recursively generate its child objects and fields
@@ -267,16 +273,18 @@ class GeneratePojos {
      * @param fields the set of fields to generate.
      * @param jCodeModel the code model.
      * @param generateBuilders true if the generated class should omit setters and generate a builder instead.
+     * @param useMPrefix true if the generated fields should use an 'm' prefix.
      * @return a list of generated fields.
      * @throws Exception if an error occurs.
      */
-    private List<GeneratedField> generateFields(JDefinedClass clazz, Set<FieldInfo> fields, JCodeModel jCodeModel, boolean generateBuilders) throws Exception {
+    private List<GeneratedField> generateFields(JDefinedClass clazz, Set<FieldInfo> fields, JCodeModel jCodeModel,
+                                                boolean generateBuilders, boolean useMPrefix) throws Exception {
         List<GeneratedField> generatedFields = new ArrayList<>();
 
         // Get sorted list of field names
         for (FieldInfo fieldInfo : fields) {
             // Create field with correct naming scheme
-            String fieldName = formatFieldName(fieldInfo.PropertyName);
+            String fieldName = formatFieldName(fieldInfo.PropertyName, useMPrefix);
 
             // Resolve deferred types
             JFieldVar newField;
@@ -507,12 +515,13 @@ class GeneratePojos {
      * Formats the given property name into a more standard field name.
      *
      * @param propertyName the original property name.
+     * @param useMPrefix true if the field name should be prefixed with an 'm'.
      * @return the formatted field name.
      */
-    static String formatFieldName(String propertyName) {
+    static String formatFieldName(String propertyName, boolean useMPrefix) {
         String fieldName = StringUtils.capitalize(sanitizePropertyName(propertyName));
 
-        if (USE_M_PREFIX) {
+        if (useMPrefix) {
             fieldName = "m" + fieldName;
         }
         return fieldName;
@@ -574,10 +583,18 @@ class GeneratePojos {
      * A comparator that sorts field data objects by field name, case insensitive.
      */
     private static class FieldComparator implements Comparator<FieldInfo> {
+
+        private final boolean mUseMPrefix;
+
+        public FieldComparator(boolean useMPrefix) {
+            mUseMPrefix = useMPrefix;
+        }
+
         @Override
         public int compare(FieldInfo left, FieldInfo right) {
             // Sort by formatted field name, not the property names
-            return formatFieldName(left.PropertyName).compareTo(formatFieldName(right.PropertyName));
+            return formatFieldName(left.PropertyName, mUseMPrefix)
+                    .compareTo(formatFieldName(right.PropertyName, mUseMPrefix));
         }
     }
 

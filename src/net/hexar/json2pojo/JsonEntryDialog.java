@@ -30,8 +30,9 @@ public class JsonEntryDialog extends JDialog {
          * @param className the class name entered into the dialog.
          * @param jsonText the JSON text entered into the dialog.
          * @param generateBuilders true if the generated classes should omit setters and generate builders.
+         * @param useMPrefix true if the generated fields should have an 'm' prefix.
          */
-        void onOk(String className, String jsonText, boolean generateBuilders);
+        void onOk(String className, String jsonText, boolean generateBuilders, boolean useMPrefix);
     }
 
     //endregion
@@ -53,6 +54,7 @@ public class JsonEntryDialog extends JDialog {
     private JTextField mClassName;
     private JPanel mContentPane;
     private RSyntaxTextArea mJsonText;
+    private JCheckBox mUseMPrefix;
     private JCheckBox mGenerateBuilders;
 
     //endregion
@@ -115,7 +117,11 @@ public class JsonEntryDialog extends JDialog {
     }
 
     private void onOK() {
-        mListener.onOk(mClassName.getText(), mJsonText.getText(), mGenerateBuilders.isSelected());
+        mListener.onOk(
+                mClassName.getText(),
+                mJsonText.getText(),
+                mGenerateBuilders.isSelected(),
+                mUseMPrefix.isSelected());
         dispose();
     }
 
