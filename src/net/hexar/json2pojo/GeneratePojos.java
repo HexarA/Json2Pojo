@@ -80,14 +80,8 @@ class GeneratePojos {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode rootNode = mapper.readTree(json);
 
-            // Create top-level class
-            JDefinedClass rootClass = jPackage._class(rootName);
-            annotateClass(rootClass);
-            mClassMap.put(rootName, rootClass);
-            mFieldMap.put(rootClass, new TreeSet<>(mFieldComparator));
-
             // Recursively generate
-            generate(rootNode, rootClass, jPackage, generateBuilders, useMPrefix);
+            generate(rootNode, formatClassName(rootName), jPackage, generateBuilders, useMPrefix);
 
             // Build
             jCodeModel.build(new File(mModuleSourceRoot.getPath()));
@@ -101,16 +95,16 @@ class GeneratePojos {
      * Generates all of the sub-objects and fields for a given class.
      *
      * @param rootNode the JSON class node in the JSON syntax tree.
-     * @param rootClass the class to generate sub-objects and fields for.
+     * @param rootName the name of the root class to generate.
      * @param jPackage the code model package to generate the class in.
      * @param generateBuilders true if the generated class should omit setters and generate a builder instead.
      * @param useMPrefix true if the generated fields should use an 'm' prefix.
      * @throws Exception if an error occurs.
      */
-    private void generate(JsonNode rootNode, JDefinedClass rootClass, JPackage jPackage, boolean generateBuilders,
+    private void generate(JsonNode rootNode, String rootName, JPackage jPackage, boolean generateBuilders,
                           boolean useMPrefix) throws Exception {
         // First create all referenced sub-types and collect field data
-        parseTree(rootNode, rootClass, jPackage);
+        parseObject(rootNode, rootName, jPackage);
 
         // Now create the actual fields
         int i = 1;
@@ -133,70 +127,69 @@ class GeneratePojos {
     /**
      * Generates all of the sub-objects for a given class.
      *
+     * @param classNode the JSON object node in the JSON syntax tree.
+     * @param className the name of the class to create for this node.
      * @param jPackage the code model package to generate the class in.
-     * @param clazz the defined class to parse.
-     * @param classNode the JSON class node in the JSON syntax tree.
      * @throws Exception if an error occurs.
      */
-    private void parseTree(JsonNode classNode, JDefinedClass clazz, JPackage jPackage) throws Exception {
-        // Iterate over all of the fields in this node
+    private void parseObject(JsonNode classNode, String className, JPackage jPackage) throws Exception {
+        // Find the class if it exists, or create it if it doesn't
+        JDefinedClass clazz;
+        if (mClassMap.containsKey(className)) {
+            clazz = mClassMap.get(className);
+        } else {
+            clazz = jPackage._class(className);
+            annotateClass(clazz);
+            mClassMap.put(className, clazz);
+            mFieldMap.put(clazz, new TreeSet<>(mFieldComparator));
+        }
+
+        // Iterate over all of the fields in this object
         Iterator<Map.Entry<String, JsonNode>> fieldsIterator = classNode.fields();
         while (fieldsIterator.hasNext()) {
             // Get the field name and child node
             Map.Entry<String, JsonNode> entry = fieldsIterator.next();
-            String propertyName = entry.getKey();
+            String childProperty = entry.getKey();
             JsonNode childNode = entry.getValue();
 
-            // For arrays and objects, we need to create a new type
-            if (childNode.isArray()) {
-                // Determine the type of the first child
-                Iterator<JsonNode> childNodesIterator = childNode.elements();
-                while (childNodesIterator.hasNext()) {
-                    JsonNode nextChild = childNodesIterator.next();
-
-                    // Only create sub-types for objects
-                    if (nextChild.isObject()) {
-                        // Singularize the class name of a single element
-                        String newClassName = formatClassName(Inflector.getInstance().singularize(propertyName));
-
-                        // Find the class if it exists, or create it if it doesn't
-                        JDefinedClass newClass;
-                        if (mClassMap.containsKey(newClassName)) {
-                            newClass = mClassMap.get(newClassName);
-                        } else {
-                            newClass = jPackage._class(newClassName);
-                            annotateClass(newClass);
-                            mClassMap.put(newClassName, newClass);
-                            mFieldMap.put(newClass, new TreeSet<>(mFieldComparator));
-                        }
-
-                        // Recursively generate its child objects and fields
-                        parseTree(nextChild, newClass,jPackage);
-                    }
-                }
-            } else if (childNode.isObject()) {
-                // The class name should match the field name, except uppercase
-                String newClassName = formatClassName(propertyName);
-
-                // Find the class if it exists, or create it if it doesn't
-                JDefinedClass newClass;
-                if (mClassMap.containsKey(newClassName)) {
-                    newClass = mClassMap.get(newClassName);
-                } else {
-                    newClass = jPackage._class(newClassName);
-                    annotateClass(newClass);
-                    mClassMap.put(newClassName, newClass);
-                    mFieldMap.put(newClass, new TreeSet<>(mFieldComparator));
-                }
-
-                // Recursively generate its child objects and fields
-                parseTree(childNode, newClass, jPackage);
+            // Recurse into objects and arrays
+            if (childNode.isObject()) {
+                String childName = formatClassName(childProperty);
+                parseObject(childNode, childName, jPackage);
+            } else if (childNode.isArray()) {
+                String childName = formatClassName(Inflector.getInstance().singularize(childProperty));
+                parseArray(childNode, childName, jPackage);
             }
 
             // Now attempt to create the field and add it to the field set
-            FieldInfo field = getFieldInfoFromNode(childNode, propertyName, jPackage.owner());
+            FieldInfo field = getFieldInfoFromNode(childNode, childProperty, jPackage.owner());
             if (field != null) {
                 mFieldMap.get(clazz).add(field);
+            }
+        }
+    }
+
+    /**
+     * Generates all of the sub-objects for a given array node.
+     *
+     * @param arrayNode the JSON array node in the JSON syntax tree.
+     * @param className the formatted name of the class we might generate from this array.
+     * @param jPackage the code model package to generate the class in.
+     * @throws Exception if an error occurs.
+     */
+    private void parseArray(JsonNode arrayNode, String className, JPackage jPackage) throws Exception {
+        // Retrieve the first non-null element of the array
+        Iterator<JsonNode> elementsIterator = arrayNode.elements();
+        while (elementsIterator.hasNext()) {
+            JsonNode element = elementsIterator.next();
+
+            // Recurse on the first object or array
+            if (element.isObject()) {
+                parseObject(element, className, jPackage);
+                break;
+            } else if (element.isArray()) {
+                parseArray(element, className, jPackage);
+                break;
             }
         }
     }
@@ -225,6 +218,12 @@ class GeneratePojos {
 
                     // Now return the field referring to a list of the new class
                     return new FieldInfo(jCodeModel.ref(List.class).narrow(newClass), propertyName);
+                } else if (firstNode.isArray()) {
+                    // Recurse to get the field info of this node
+                    FieldInfo fi = getFieldInfoFromNode(firstNode, propertyName, jCodeModel);
+
+                    // Make a List<> of the recursed type
+                    return new FieldInfo(jCodeModel.ref(List.class).narrow(fi.Type), propertyName);
                 } else if (firstNode.isFloatingPointNumber()) {
                     // Now return the field referring to a list of doubles
                     return new FieldInfo(jCodeModel.ref(List.class).narrow(Double.class), propertyName);
