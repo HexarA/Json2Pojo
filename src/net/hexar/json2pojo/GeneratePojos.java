@@ -518,10 +518,10 @@ class GeneratePojos {
      * @return the formatted field name.
      */
     static String formatFieldName(String propertyName, boolean useMPrefix) {
-        String fieldName = StringUtils.capitalize(sanitizePropertyName(propertyName));
+        String fieldName = sanitizePropertyName(propertyName);
 
         if (useMPrefix) {
-            fieldName = "m" + fieldName;
+            fieldName = "m" + StringUtils.capitalize(fieldName);
         }
         return fieldName;
     }
@@ -539,7 +539,7 @@ class GeneratePojos {
 
         // Avoid invalid starting characters for class / field names
         if (Character.isJavaIdentifierStart(propertyName.charAt(0))) {
-            formattedName.append(propertyName.charAt(0));
+            formattedName.append(Character.toLowerCase(propertyName.charAt(0)));
         }
 
         // Iterate over the other characters
@@ -553,14 +553,14 @@ class GeneratePojos {
                     uppercaseNext = false;
                 } else {
                     // Retain case
-                    formattedName.append(propertyName.charAt(charIndex));
+                    formattedName.append(Character.toLowerCase(c));
                 }
             } else if (Character.isDigit(c)) {
                 // Append as is
                 formattedName.append(c);
             } else {
                 // Don't append non-alphanumeric parts and uppercase next letter
-                uppercaseNext = true;
+                uppercaseNext = formattedName.length() > 0;
             }
         }
 
