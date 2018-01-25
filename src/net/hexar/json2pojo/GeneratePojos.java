@@ -59,10 +59,10 @@ class GeneratePojos {
     /**
      * Generates POJOs from a source JSON text.
      *
-     * @param rootName the name of the root class to generate.
-     * @param json the source JSON text.
+     * @param rootName         the name of the root class to generate.
+     * @param json             the source JSON text.
      * @param generateBuilders true if the generated class should omit setters and generate a builder instead.
-     * @param useMPrefix true if the generated fields should use an 'm' prefix.
+     * @param useMPrefix       true if the generated fields should use an 'm' prefix.
      */
     void generateFromJson(String rootName, String json, boolean generateBuilders, boolean useMPrefix) {
         mFieldComparator = new FieldComparator(useMPrefix);
@@ -94,11 +94,11 @@ class GeneratePojos {
     /**
      * Generates all of the sub-objects and fields for a given class.
      *
-     * @param rootNode the JSON class node in the JSON syntax tree.
-     * @param rootName the name of the root class to generate.
-     * @param jPackage the code model package to generate the class in.
+     * @param rootNode         the JSON class node in the JSON syntax tree.
+     * @param rootName         the name of the root class to generate.
+     * @param jPackage         the code model package to generate the class in.
      * @param generateBuilders true if the generated class should omit setters and generate a builder instead.
-     * @param useMPrefix true if the generated fields should use an 'm' prefix.
+     * @param useMPrefix       true if the generated fields should use an 'm' prefix.
      * @throws Exception if an error occurs.
      */
     private void generate(JsonNode rootNode, String rootName, JPackage jPackage, boolean generateBuilders,
@@ -129,7 +129,7 @@ class GeneratePojos {
      *
      * @param classNode the JSON object node in the JSON syntax tree.
      * @param className the name of the class to create for this node.
-     * @param jPackage the code model package to generate the class in.
+     * @param jPackage  the code model package to generate the class in.
      * @throws Exception if an error occurs.
      */
     private void parseObject(JsonNode classNode, String className, JPackage jPackage) throws Exception {
@@ -174,7 +174,7 @@ class GeneratePojos {
      *
      * @param arrayNode the JSON array node in the JSON syntax tree.
      * @param className the formatted name of the class we might generate from this array.
-     * @param jPackage the code model package to generate the class in.
+     * @param jPackage  the code model package to generate the class in.
      * @throws Exception if an error occurs.
      */
     private void parseArray(JsonNode arrayNode, String className, JPackage jPackage) throws Exception {
@@ -197,9 +197,9 @@ class GeneratePojos {
     /**
      * Creates a field in the given class.
      *
-     * @param node the JSON node describing the field.
+     * @param node         the JSON node describing the field.
      * @param propertyName the name of the field to create.
-     * @param jCodeModel the code model to use for generation.
+     * @param jCodeModel   the code model to use for generation.
      * @return a {@link FieldInfo} representing the new field.
      * @throws Exception if an error occurs.
      */
@@ -268,11 +268,11 @@ class GeneratePojos {
     /**
      * Generates all of the fields for a given class.
      *
-     * @param clazz the class to generate sub-objects and fields for.
-     * @param fields the set of fields to generate.
-     * @param jCodeModel the code model.
+     * @param clazz            the class to generate sub-objects and fields for.
+     * @param fields           the set of fields to generate.
+     * @param jCodeModel       the code model.
      * @param generateBuilders true if the generated class should omit setters and generate a builder instead.
-     * @param useMPrefix true if the generated fields should use an 'm' prefix.
+     * @param useMPrefix       true if the generated fields should use an 'm' prefix.
      * @return a list of generated fields.
      * @throws Exception if an error occurs.
      */
@@ -294,7 +294,7 @@ class GeneratePojos {
 
                 // Now return the field for the actual class type
                 if (newClass != null) {
-                     newField = clazz.field(JMod.PRIVATE, newClass, fieldName);
+                    newField = clazz.field(JMod.PRIVATE, newClass, fieldName);
                 } else {
                     // Otherwise, just make a field of type Object
                     newField = clazz.field(JMod.PRIVATE, jCodeModel.ref(Object.class), fieldName);
@@ -339,7 +339,7 @@ class GeneratePojos {
     /**
      * Generates the inner builder class for the containing class, with methods for the given fields.
      *
-     * @param clazz the class to generate a builder class in.
+     * @param clazz  the class to generate a builder class in.
      * @param fields the list of generated fields to build.
      * @throws Exception if an error occurs.
      */
@@ -378,7 +378,7 @@ class GeneratePojos {
      * Adds the {@link Expose} annotation and potentially the {@link SerializedName} annotation to a given
      * field - the latter is applied only if the property name differs from the field name.
      *
-     * @param field the field to annotate.
+     * @param field        the field to annotate.
      * @param propertyName the original JSON property name.
      */
     private static void annotateField(JFieldVar field, String propertyName) {
@@ -399,8 +399,8 @@ class GeneratePojos {
     /**
      * Generates a builder method for the given class, field, and property name.
      *
-     * @param builder the class to generate a builder method in.
-     * @param field the field to set.
+     * @param builder      the class to generate a builder method in.
+     * @param field        the field to set.
      * @param propertyName the name of the property.
      * @return a {@link JMethod} which is a builder method for the given field.
      */
@@ -428,9 +428,9 @@ class GeneratePojos {
     /**
      * Creates the build method for the builder.
      *
-     * @param owner the containing class to build.
+     * @param owner   the containing class to build.
      * @param builder the builder to generate the build method for.
-     * @param fields the list of generated fields that the containing class owns.
+     * @param fields  the list of generated fields that the containing class owns.
      */
     private JMethod createBuildMethod(JDefinedClass owner, JDefinedClass builder, List<GeneratedField> fields) {
         // Method name should start with "set" and then the uppercased class name
@@ -457,8 +457,8 @@ class GeneratePojos {
     /**
      * Generates a getter for the given class, field, and property name.
      *
-     * @param clazz the class to generate a getter in.
-     * @param field the field to return.
+     * @param clazz        the class to generate a getter in.
+     * @param field        the field to return.
      * @param propertyName the name of the property.
      * @return a {@link JMethod} which is a getter for the given field.
      */
@@ -475,8 +475,8 @@ class GeneratePojos {
     /**
      * Generates a setter for the given class, field, and property name.
      *
-     * @param clazz the class to generate a setter in.
-     * @param field the field to set.
+     * @param clazz        the class to generate a setter in.
+     * @param field        the field to set.
      * @param propertyName the name of the property.
      * @return a {@link JMethod} which is a setter for the given field.
      */
@@ -514,7 +514,7 @@ class GeneratePojos {
      * Formats the given property name into a more standard field name.
      *
      * @param propertyName the original property name.
-     * @param useMPrefix true if the field name should be prefixed with an 'm'.
+     * @param useMPrefix   true if the field name should be prefixed with an 'm'.
      * @return the formatted field name.
      */
     static String formatFieldName(String propertyName, boolean useMPrefix) {
@@ -552,8 +552,8 @@ class GeneratePojos {
                     formattedName.append(Character.toUpperCase(c));
                     uppercaseNext = false;
                 } else {
-                    // Retain case
-                    formattedName.append(Character.toLowerCase(c));
+                    // Retain case, lowers for first
+                    formattedName.append(formattedName.length() == 0 ? Character.toLowerCase(c) : c);
                 }
             } else if (Character.isDigit(c)) {
                 // Append as is

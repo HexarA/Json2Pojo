@@ -14,6 +14,7 @@ public class GeneratePojosTest {
         assertEquals("TestWithUnderscores", GeneratePojos.formatClassName("test_with_underscores"));
         assertEquals("TestWithHyphens", GeneratePojos.formatClassName("test-with-hyphens"));
         assertEquals("Abstract", GeneratePojos.formatClassName("abstract"));
+        assertEquals("AbstractTest", GeneratePojos.formatClassName("abstractTest"));
         assertEquals("Piñata", GeneratePojos.formatClassName("piñata"));
         assertEquals("Test", GeneratePojos.formatClassName("1Test"));
         assertEquals("InvalidChars", GeneratePojos.formatClassName("Invalid@$%@#$^&#%@Chars"));
