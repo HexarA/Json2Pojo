@@ -1,7 +1,7 @@
-<idea-plugin version="2">
+<idea-plugin>
   <id>net.hexar.json2pojo</id>
   <name>Json2Pojo</name>
-  <version>1.0.9</version>
+  <version>1.1.0</version>
   <vendor email="hexar@hexar.net" url="https://github.com/HexarA/Json2Pojo">HexarA</vendor>
 
   <description><![CDATA[
@@ -23,6 +23,7 @@
       <li>1.0.7 - Sanitizing JSON property names better to remove characters that are invalid for Java identifiers.</li>
       <li>1.0.8 - Adding an option to disable using an 'm' prefix for field names.</li>
       <li>1.0.9 - Fixing parsing of nested arrays into nested Lists.</li>
+      <li>1.1.0 - Lowercase the first letter of field names when they do not have the 'm' prefix.</li>
     ]]>
   </change-notes>
 
